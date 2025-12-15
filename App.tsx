@@ -131,7 +131,6 @@ const App: React.FC = () => {
           </div>
           <div className="hidden md:flex gap-6 text-sm font-mono text-slate-400">
             <a href={`https://github.com/${GITHUB_USERNAME}`} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Github</a>
-            <a href="#contact" className="hover:text-white transition-colors">Contact</a>
           </div>
         </div>
       </nav>

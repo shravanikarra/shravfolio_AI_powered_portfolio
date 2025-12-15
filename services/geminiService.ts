@@ -6,7 +6,15 @@ let genAI: GoogleGenAI | null = null;
 
 const getAIInstance = (): GoogleGenAI => {
   if (!genAI) {
-    const apiKey = process.env.API_KEY || ''; 
+    // In Vite, env vars are typically import.meta.env.VITE_..., but we shimmed process.env in vite.config.ts
+    // You should add VITE_GEMINI_API_KEY to your Vercel Environment Variables
+    const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || ''; 
+    
+    // Safety check to prevent crashing if key is missing (though functionality will be limited)
+    if (!apiKey) {
+        console.warn("Gemini API Key is missing. Please set VITE_GEMINI_API_KEY in your environment.");
+    }
+
     genAI = new GoogleGenAI({ apiKey });
   }
   return genAI;
