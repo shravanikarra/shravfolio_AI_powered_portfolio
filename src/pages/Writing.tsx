@@ -20,27 +20,19 @@ const WritingPage: React.FC = () => {
 
       <section className="space-y-4">
         <h2 className="text-2xl font-bold text-white">Medium</h2>
-        <div className="rounded-xl border border-slate-800 bg-slate-800/40 p-4">
-          <div className="aspect-[16/9] w-full rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
-            <iframe
-              title="Medium Profile"
-              src="https://medium.com/@kindlingthoughts"
-              className="w-full h-full"
-              loading="lazy"
-            />
-          </div>
-          <div className="text-sm text-slate-400 mt-3">
-            If the embedded view does not load, open directly on Medium:&nbsp;
-            <a
-              href="https://medium.com/@kindlingthoughts"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brand-primary hover:underline"
-            >
-              medium.com/@kindlingthoughts
-            </a>
-          </div>
-        </div>
+        <a
+          href="https://medium.com/@kindlingthoughts"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-xl border border-slate-800 bg-slate-800/40 p-5 hover:border-brand-primary/60 transition-colors space-y-2"
+        >
+          <p className="text-xs text-slate-400">medium.com/@kindlingthoughts</p>
+          <h3 className="text-lg font-semibold text-white">Read on Medium</h3>
+          <p className="text-sm text-slate-300">
+            Essays on data, decision-making, and building systems under real-world constraints.
+          </p>
+          <span className="text-sm text-brand-primary hover:underline">Open Medium ↗</span>
+        </a>
       </section>
 
       <section className="space-y-4">
