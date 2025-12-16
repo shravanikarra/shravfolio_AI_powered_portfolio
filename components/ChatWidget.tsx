@@ -9,15 +9,7 @@ import {
   getShravaniSummary,
   getSystemsList
 } from '../src/bot/offlineResponder';
-
-type AssistantState =
-  | 'home'
-  | 'about_shravani'
-  | 'projects_menu'
-  | 'project_detail'
-  | 'systems_menu'
-  | 'models_menu'
-  | 'contact';
+import { AssistantState } from '../src/bot/assistantFlow';
 
 const ChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -30,7 +22,7 @@ const ChatWidget: React.FC = () => {
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const [state, setState] = useState<AssistantState>('home');
+  const [state, setState] = useState<AssistantState>('HOME');
   const [stateStack, setStateStack] = useState<AssistantState[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -49,9 +41,15 @@ const ChatWidget: React.FC = () => {
   };
 
   const goBack = () => {
+    if (state === 'PROJECT_DETAIL') {
+      setSelectedProjectId(null);
+      setState('PROJECT_LIST');
+      addMessage('model', 'Back to projects.');
+      return;
+    }
     setStateStack(prev => {
       if (prev.length === 0) {
-        setState('home');
+        setState('HOME');
         return prev;
       }
       const copy = [...prev];
@@ -75,47 +73,49 @@ const ChatWidget: React.FC = () => {
 
     setTimeout(() => {
       switch (label) {
-        case 'Talk about Shravani Karra':
+        case 'Who built this?':
           addMessage('model', getShravaniSummary());
-          pushState('about_shravani');
+          pushState('ABOUT');
           break;
         case 'Talk about a project':
           addMessage('model', 'Select a project to view details.');
-          pushState('projects_menu');
+          setSelectedProjectId(null);
+          setStateStack([]);
+          setState('PROJECT_LIST');
           break;
         case 'Systems':
           addMessage('model', 'Here are the systems available:');
-          pushState('systems_menu');
+          pushState('SYSTEM_LIST');
           break;
         case 'ML Models & Methods':
           addMessage('model', getModelsOverview());
-          pushState('models_menu');
+          pushState('MODELS');
           break;
         case 'Contact':
           addMessage('model', getContactInfo());
-          pushState('contact');
+          pushState('CONTACT');
           break;
         default:
           break;
       }
 
-      if (nextState === 'project_detail' && payload?.id) {
+      if (nextState === 'PROJECT_DETAIL' && payload?.id) {
         const detail = getProjectDetail(payload.id);
         setSelectedProjectId(payload.id);
         addMessage('model', detail.text);
-        pushState('project_detail');
+        pushState('PROJECT_DETAIL');
       }
 
-      if (nextState === 'systems_menu' && payload?.text) {
+      if (nextState === 'SYSTEM_LIST' && payload?.text) {
         addMessage('model', payload.text);
       }
 
-      if (nextState === 'models_menu' && payload?.category) {
+      if (nextState === 'MODELS' && payload?.category) {
         addMessage('model', getModelCategoryDetail(payload.category));
       }
 
-      if (nextState === 'home') {
-        setState('home');
+      if (nextState === 'HOME') {
+        setState('HOME');
         setStateStack([]);
         addMessage('model', 'Restarted. How can I help?');
       }
@@ -124,7 +124,7 @@ const ChatWidget: React.FC = () => {
     }, 120);
   };
 
-  const handleStartOver = () => handleAction('Start over', 'home');
+  const handleStartOver = () => handleAction('Start over', 'HOME');
 
   const projectList = getProjectList();
   const systemList = getSystemsList();
@@ -140,169 +140,180 @@ const ChatWidget: React.FC = () => {
     'NLP/LLMs'
   ];
 
+  const breadcrumb = () => {
+    const trail = ['Home'];
+    if (state === 'PROJECT_LIST' || state === 'PROJECT_DETAIL') {
+      trail.push('Projects');
+      if (state === 'PROJECT_DETAIL' && selectedProjectId) {
+        const proj = projectList.find(p => p.id === selectedProjectId);
+        if (proj) trail.push(proj.displayName);
+      }
+    } else if (state === 'SYSTEM_LIST') {
+      trail.push('Systems');
+    } else if (state === 'MODELS') {
+      trail.push('Models & Methods');
+    } else if (state === 'ABOUT') {
+      trail.push('About');
+    } else if (state === 'CONTACT') {
+      trail.push('Contact');
+    }
+    return trail.join(' \u2192 ');
+  };
+
   const renderOptions = () => {
-    if (state === 'home') {
-      const options = [
-        'Talk about Shravani Karra',
-        'Talk about a project',
-        'Systems',
-        'ML Models & Methods',
-        'Contact'
-      ];
-      return options.map(opt => (
-        <button
-          key={opt}
-          onClick={() => handleAction(opt)}
-          className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
-        >
-          {opt}
-        </button>
-      ));
-    }
-
-    if (state === 'projects_menu') {
-      return (
-        <>
-          {projectList.map(p => (
+    switch (state) {
+      case 'HOME': {
+        const options = [
+          'Who built this?',
+          'Talk about a project',
+          'Systems',
+          'ML Models & Methods',
+          'Contact'
+        ];
+        return options.map(opt => (
+          <button
+            key={opt}
+            onClick={() => handleAction(opt)}
+            className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
+          >
+            {opt}
+          </button>
+        ));
+      }
+      case 'PROJECT_LIST': {
+        return (
+          <>
+            {projectList.map(p => (
+              <button
+                key={p.id}
+                onClick={() => handleAction(p.displayName, 'PROJECT_DETAIL', { id: p.id })}
+                className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-left"
+              >
+                {p.displayName}
+              </button>
+            ))}
             <button
-              key={p.id}
-              onClick={() => handleAction(p.displayName, 'project_detail', { id: p.id })}
-              className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-left"
+              onClick={handleStartOver}
+              className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
             >
-              {p.displayName}
+              Home
             </button>
-          ))}
-          <button
-            onClick={goBack}
-            className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
-          >
-            Back
-          </button>
-        </>
-      );
-    }
-
-    if (state === 'project_detail' && selectedProjectId) {
-      const detail = getProjectDetail(selectedProjectId);
-      return (
-        <>
-          {detail.links?.live && (
-            <a
-              href={detail.links.live}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-2 rounded-lg text-sm bg-brand-primary text-slate-900 font-semibold hover:opacity-90 transition-colors text-center"
-            >
-              Open Live
-            </a>
-          )}
-          {detail.links?.github && (
-            <a
-              href={detail.links.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-center"
-            >
-              Open GitHub
-            </a>
-          )}
-          {detail.links?.notebook && (
-            <a
-              href={detail.links.notebook}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-center"
-            >
-              Open Notebook
-            </a>
-          )}
-          <button
-            onClick={() => handleAction('Back to Projects', 'projects_menu')}
-            className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
-          >
-            Back to Projects
-          </button>
-        </>
-      );
-    }
-
-    if (state === 'systems_menu') {
-      return (
-        <>
-          {systemList.map(s => (
+          </>
+        );
+      }
+      case 'PROJECT_DETAIL': {
+        if (!selectedProjectId) return null;
+        const detail = getProjectDetail(selectedProjectId);
+        return (
+          <>
+            {detail.links?.live && (
+              <a
+                href={detail.links.live}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-lg text-sm bg-brand-primary text-slate-900 font-semibold hover:opacity-90 transition-colors text-center"
+              >
+                Open Live
+              </a>
+            )}
+            {detail.links?.github && (
+              <a
+                href={detail.links.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-center"
+              >
+                Open GitHub
+              </a>
+            )}
+            {detail.links?.notebook && (
+              <a
+                href={detail.links.notebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-center"
+              >
+                Open Notebook
+              </a>
+            )}
             <button
-              key={s.id}
-              onClick={() =>
-                handleAction(
-                  s.displayName,
-                  'systems_menu',
-                  { id: s.id, text: `${s.displayName}: ${s.problem} Approach: ${s.approach}` }
-                )
-              }
-              className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-left"
+              onClick={goBack}
+              className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
             >
-              {s.displayName}
+              Back to Projects
             </button>
-          ))}
-          <button
-            onClick={goBack}
-            className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
-          >
-            Back
-          </button>
-        </>
-      );
-    }
-
-    if (state === 'models_menu') {
-      return (
-        <>
-          {modelCategories.map(cat => (
+          </>
+        );
+      }
+      case 'SYSTEM_LIST': {
+        return (
+          <>
+            {systemList.map(s => (
+              <button
+                key={s.id}
+                onClick={() =>
+                  handleAction(
+                    s.displayName,
+                    'SYSTEM_LIST',
+                    { id: s.id, text: `${s.displayName}: ${s.problem} Approach: ${s.approach}` }
+                  )
+                }
+                className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-left"
+              >
+                {s.displayName}
+              </button>
+            ))}
             <button
-              key={cat}
-              onClick={() => handleAction(cat, 'models_menu', { category: cat })}
-              className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-left"
+              onClick={handleStartOver}
+              className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
             >
-              {cat}
+              Home
             </button>
-          ))}
+          </>
+        );
+      }
+      case 'MODELS': {
+        return (
+          <>
+            {modelCategories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => handleAction(cat, 'MODELS', { category: cat })}
+                className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-left"
+              >
+                {cat}
+              </button>
+            ))}
+            <button
+              onClick={handleStartOver}
+              className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
+            >
+              Home
+            </button>
+          </>
+        );
+      }
+      case 'ABOUT':
+      case 'CONTACT': {
+        return (
           <button
-            onClick={goBack}
+            onClick={handleStartOver}
             className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
           >
-            Back
+            Home
           </button>
-        </>
-      );
-    }
-
-    if (state === 'about_shravani' || state === 'contact') {
-      return (
-        <>
-          <button
-            onClick={goBack}
-            className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
-          >
-            Back
-          </button>
+        );
+      }
+      default:
+        return (
           <button
             onClick={handleStartOver}
             className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
           >
-            Start over
+            Home
           </button>
-        </>
-      );
+        );
     }
-
-    return (
-      <button
-        onClick={handleStartOver}
-        className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
-      >
-        Start over
-      </button>
-    );
   };
 
   return (
@@ -323,6 +334,8 @@ const ChatWidget: React.FC = () => {
             </button>
           </div>
           
+          <div className="px-4 pt-3 text-xs text-slate-400 border-b border-slate-800">{breadcrumb()}</div>
+
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-900/90">
             {messages.map(msg => (
               <div 
