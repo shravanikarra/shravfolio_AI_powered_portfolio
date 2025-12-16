@@ -56,6 +56,10 @@ export const sendMessageToGemini = async (message: string): Promise<string> => {
 
 // New function to analyze projects in bulk
 export const analyzeRepos = async (repos: any[]) => {
+  if (!import.meta.env.VITE_GEMINI_API_KEY) {
+    return [];
+  }
+
   const ai = getAIInstance();
   
   // Create a simplified list for the model to process

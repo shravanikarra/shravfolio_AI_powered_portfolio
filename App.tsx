@@ -39,28 +39,30 @@ const App: React.FC = () => {
         
         // Analyze with Gemini
         const analysisResults = await analyzeRepos(repos);
-        
+        const newProjects: Project[] = [];
+
         if (analysisResults.length > 0) {
            addLog(`Classifying projects into 3 Pillars...`);
            
-           const newProjects: Project[] = [];
-           
-           // Map analysis back to repos
            analysisResults.forEach((analysis: any) => {
-              const originalRepo = repos.find(r => r.id === analysis.id);
+              const originalRepo = repos.find((r: any) => r.id === analysis.id);
               if (originalRepo) {
                 newProjects.push(mapRepoToProject(originalRepo, analysis));
               }
            });
+        }
 
-           if (newProjects.length > 0) {
-             setProjects(newProjects);
-             addLog(`Successfully indexed ${newProjects.length} ML projects.`);
-           } else {
-             addLog(`Warning: No ML projects identified by AI. Using archives.`);
-           }
+        // If Gemini is unavailable or returned nothing, fall back to heuristics so all repos show up
+        if (newProjects.length === 0) {
+          addLog(`Gemini unavailable. Indexing all GitHub projects with smart defaults...`);
+          repos.forEach((repo: any) => newProjects.push(mapRepoToProject(repo)));
+        }
+
+        if (newProjects.length > 0) {
+          setProjects(newProjects);
+          addLog(`Successfully indexed ${newProjects.length} projects.`);
         } else {
-           addLog(`Neural Link unstable. Using cached archival data.`);
+          addLog(`Warning: No projects identified. Using archives.`);
         }
       } else {
         addLog(`No repositories found or connection failed.`);
