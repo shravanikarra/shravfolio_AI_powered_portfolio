@@ -1,5 +1,6 @@
 import { Project, ProjectCategory } from '../types';
 import { getProjectImage } from '../constants';
+import { toTitleCase } from '../src/utils/titleCase';
 
 interface GitHubRepo {
   id: number;
@@ -68,7 +69,9 @@ const deriveTechnologies = (repo: GitHubRepo, analysis: any): string[] => {
 };
 
 export const mapRepoToProject = (repo: GitHubRepo, analysis?: any): Project => {
-  const title = analysis?.title || repo.name.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+  const repoName = repo.name;
+  const displayName = analysis?.title || toTitleCase(repoName);
+  const title = displayName;
   const category = analysis?.category || inferCategory(repo);
   const technologies = deriveTechnologies(repo, analysis);
   const description = (analysis?.description || repo.description || 'Personal project.')?.trim();
@@ -77,6 +80,8 @@ export const mapRepoToProject = (repo: GitHubRepo, analysis?: any): Project => {
   return {
     id: repo.id.toString(),
     title,
+    displayName,
+    repoName,
     description,
     category,
     technologies: technologies.length > 0 ? technologies : ['GitHub'],

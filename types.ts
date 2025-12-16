@@ -3,6 +3,9 @@ export type ProjectCategory = 'The End-to-End' | 'The Business Value' | 'The Dee
 export interface Project {
   id: string;
   title: string;
+  displayName?: string;
+  repoName?: string;
+  subtitle?: string;
   description: string;
   category: ProjectCategory;
   technologies: string[];

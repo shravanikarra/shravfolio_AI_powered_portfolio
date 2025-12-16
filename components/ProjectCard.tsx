@@ -13,6 +13,7 @@ const categoryTag = (category: string) => {
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   const tag = categoryTag(project.category);
+  const title = project.displayName || project.title;
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-800/40 p-5 hover:border-brand-primary/60 transition-colors shadow-sm">
@@ -23,7 +24,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
             <span className="text-slate-400">·</span>
             <span className="text-slate-300">{project.year}</span>
           </div>
-          <h3 className="text-xl font-bold text-white mt-3">{project.title}</h3>
+          <h3 className="text-xl font-bold text-white mt-3">{title}</h3>
+          {project.subtitle && <p className="text-xs text-slate-400 mt-1">{project.subtitle}</p>}
+          {project.repoName && (
+            <p className="text-[11px] text-slate-500 mt-1">Repo: {project.repoName}</p>
+          )}
           <p className="text-sm text-slate-300 mt-2 line-clamp-3">{project.description}</p>
         </div>
       </div>

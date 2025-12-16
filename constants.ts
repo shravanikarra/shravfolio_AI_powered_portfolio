@@ -47,6 +47,8 @@ export const FALLBACK_PROJECTS: Project[] = [
   // --- THE END-TO-END (The Product) ---
   {
     id: 'p1',
+    repoName: 'plant-disease-scanner',
+    displayName: 'Plant Disease Scanner',
     title: 'Plant Disease Scanner',
     description: 'A production-ready mobile web app that identifies plant diseases from camera photos in real-time. Focus on deployment and latency.',
     category: 'The End-to-End',
@@ -57,6 +59,8 @@ export const FALLBACK_PROJECTS: Project[] = [
   },
   {
     id: 'p2',
+    repoName: 'sentiment-stream-api',
+    displayName: 'SentimentStream API',
     title: 'SentimentStream API',
     description: 'High-throughput sentiment analysis API serving 1000+ requests/sec using async Python and Kafka for queue management.',
     category: 'The End-to-End',
@@ -69,6 +73,8 @@ export const FALLBACK_PROJECTS: Project[] = [
   // --- THE BUSINESS VALUE (The Analyst) ---
   {
     id: 'p3',
+    repoName: 'customer-churn-report',
+    displayName: 'Customer Churn Report',
     title: 'Customer Churn Report',
     description: 'Predictive modeling dashboard identifying at-risk customers. Identified actionable insights saving the client ~$50k/quarter.',
     category: 'The Business Value',
@@ -79,6 +85,8 @@ export const FALLBACK_PROJECTS: Project[] = [
   },
   {
     id: 'p4',
+    repoName: 'dynamic-pricing-engine',
+    displayName: 'Dynamic Pricing Engine',
     title: 'Dynamic Pricing Engine',
     description: 'Revenue optimization model for e-commerce. Analyzed seasonality and elasticity to recommend optimal discount strategies.',
     category: 'The Business Value',
@@ -91,6 +99,8 @@ export const FALLBACK_PROJECTS: Project[] = [
   // --- THE DEEP DIVE (The Researcher) ---
   {
     id: 'p5',
+    repoName: 'legal-doc-summarizer',
+    displayName: 'Legal Doc Summarizer',
     title: 'Legal Doc Summarizer',
     description: 'Fine-tuned Llama-2-7b on a corpus of legal case files. Implemented custom loss function for factual consistency.',
     category: 'The Deep Dive',
@@ -101,6 +111,8 @@ export const FALLBACK_PROJECTS: Project[] = [
   },
   {
     id: 'p6',
+    repoName: 'neondreamer-gan',
+    displayName: 'NeonDreamer GAN',
     title: 'NeonDreamer GAN',
     description: 'Novel GAN architecture research exploring style transfer in low-light video conditions. Implemented from ArXiv paper.',
     category: 'The Deep Dive',
