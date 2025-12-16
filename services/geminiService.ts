@@ -1,7 +1,6 @@
-import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { GEMINI_MODEL_CHAT, SYSTEM_INSTRUCTION } from "../constants";
 
-let chatSession: Chat | null = null;
 let genAI: GoogleGenAI | null = null;
 
 const getAIInstance = (): GoogleGenAI => {
@@ -17,40 +16,28 @@ const getAIInstance = (): GoogleGenAI => {
   return genAI;
 };
 
-export const initializeChat = async () => {
+export const sendMessageToGemini = async (
+  message: string,
+  history?: { role: "user" | "assistant"; content: string }[]
+): Promise<string> => {
   try {
-    const ai = getAIInstance();
-    chatSession = ai.chats.create({
-      model: GEMINI_MODEL_CHAT,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.7,
-      },
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, history })
     });
-    return true;
-  } catch (error) {
-    console.error("Failed to initialize chat:", error);
-    return false;
-  }
-};
 
-export const sendMessageToGemini = async (message: string): Promise<string> => {
-  if (!chatSession) {
-     await initializeChat();
-  }
-  
-  if (!chatSession) {
-      return "Error: Could not connect to the neural core. Please check your API key configuration.";
-  }
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Proxy error", response.status, text);
+      return "Sorry — something went wrong. Try again.";
+    }
 
-  try {
-    const result: GenerateContentResponse = await chatSession.sendMessage({
-        message: message
-    });
-    return result.text || "No response received.";
+    const data = await response.json();
+    return data.reply || "No response received.";
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "I encountered a glitch in the matrix (API Error). Try again?";
+    console.error("Gemini Proxy Error:", error);
+    return "Sorry — something went wrong. Try again.";
   }
 };
 

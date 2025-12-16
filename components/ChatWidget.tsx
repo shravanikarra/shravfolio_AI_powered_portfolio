@@ -14,6 +14,7 @@ const ChatWidget: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [lastSentAt, setLastSentAt] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -28,6 +29,11 @@ const ChatWidget: React.FC = () => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    const now = Date.now();
+    if (now - lastSentAt < 2000) {
+      return;
+    }
+
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -38,8 +44,14 @@ const ChatWidget: React.FC = () => {
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
+    setLastSentAt(now);
 
-    const responseText = await sendMessageToGemini(input);
+    const recentHistory = messages.slice(-6).map(m => ({
+      role: m.role === 'model' ? 'assistant' as const : 'user' as const,
+      content: m.text
+    }));
+
+    const responseText = await sendMessageToGemini(input, recentHistory);
 
     const modelMsg: ChatMessage = {
       id: (Date.now() + 1).toString(),
