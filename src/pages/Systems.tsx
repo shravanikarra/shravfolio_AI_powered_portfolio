@@ -2,6 +2,14 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { systems } from '../data/systems';
 
+const statusClass = (status?: string) => {
+  if (!status) return 'bg-slate-800 text-slate-300 border border-slate-700';
+  const normalized = status.toLowerCase();
+  if (normalized.includes('live')) return 'bg-emerald-900/40 text-emerald-200 border border-emerald-700';
+  if (normalized.includes('progress')) return 'bg-slate-800 text-slate-200 border border-slate-700';
+  return 'bg-slate-800 text-slate-300 border border-slate-700';
+};
+
 const SystemsPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-16 space-y-8">
@@ -23,10 +31,23 @@ const SystemsPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {systems.map(system => (
-          <div key={system.name} className="rounded-xl border border-slate-800 bg-slate-800/40 p-6 space-y-3">
+          <div
+            key={system.id || system.repoName || system.displayName}
+            className="rounded-xl border border-slate-800 bg-slate-800/40 p-6 space-y-3"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-white">{system.name}</h2>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h2 className="text-2xl font-bold text-white">
+                    {system.displayName || system.repoName}
+                  </h2>
+                  {system.status && (
+                    <span className={`text-xs px-2 py-1 rounded-full ${statusClass(system.status)}`}>
+                      {system.status}
+                    </span>
+                  )}
+                </div>
+                {system.subtitle && <p className="text-sm text-slate-400 mt-1">{system.subtitle}</p>}
                 <p className="text-sm text-slate-400 mt-1">{system.problem}</p>
               </div>
             </div>
