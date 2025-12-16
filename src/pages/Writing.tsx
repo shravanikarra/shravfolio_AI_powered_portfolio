@@ -1,6 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { institutionalWriting, selectedEssays } from '../data/writing';
+import { institutionalWriting } from '../data/writing';
 
 const WritingPage: React.FC = () => {
   return (
@@ -19,33 +19,28 @@ const WritingPage: React.FC = () => {
       </div>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-white">Selected Essays</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {selectedEssays.map(essay => (
+        <h2 className="text-2xl font-bold text-white">Medium</h2>
+        <div className="rounded-xl border border-slate-800 bg-slate-800/40 p-4">
+          <div className="aspect-[16/9] w-full rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
+            <iframe
+              title="Medium Profile"
+              src="https://medium.com/@kindlingthoughts"
+              className="w-full h-full"
+              loading="lazy"
+            />
+          </div>
+          <div className="text-sm text-slate-400 mt-3">
+            If the embedded view does not load, open directly on Medium:&nbsp;
             <a
-              key={essay.title}
-              href={essay.href}
+              href="https://medium.com/@kindlingthoughts"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl border border-slate-800 bg-slate-800/40 p-5 hover:border-brand-primary/60 transition-colors space-y-2"
+              className="text-brand-primary hover:underline"
             >
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>{essay.source}</span>
-                <span>{essay.year}</span>
-              </div>
-              <h3 className="text-lg font-semibold text-white">{essay.title}</h3>
-              <p className="text-sm text-slate-300 leading-relaxed">{essay.description}</p>
+              medium.com/@kindlingthoughts
             </a>
-          ))}
+          </div>
         </div>
-        <a
-          href="https://medium.com/@kindlingthoughts"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm text-brand-primary hover:underline"
-        >
-          View all writing on Medium →
-        </a>
       </section>
 
       <section className="space-y-4">
