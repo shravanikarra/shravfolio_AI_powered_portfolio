@@ -12,8 +12,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
-    "unusedLocals": false,
-    "noFallthroughCasesInSwitch": true
+    "noUnusedLocals": false,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["vite/client"]
   },
   "include": ["."],
   "references": [{ "path": "./tsconfig.node.json" }]
