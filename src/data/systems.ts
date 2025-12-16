@@ -8,12 +8,5 @@ export const systems = [
       live: "https://shravfolio-ai-powered-portfolio.vercel.app",
       github: "https://github.com/shravanikarra/shravfolio_AI_powered_portfolio"
     }
-  },
-  {
-    name: "System Placeholder",
-    problem: "Placeholder for the next system-level project.",
-    approach: "Designed to demonstrate end-to-end thinking.",
-    stack: ["Data", "ML", "APIs"],
-    links: {}
   }
 ];
