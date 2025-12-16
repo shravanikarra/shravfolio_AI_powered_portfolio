@@ -1,6 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from '../types';
-import { getOfflineReply } from '../src/bot/offlineBot';
+import {
+  getContactInfo,
+  getModelCategoryDetail,
+  getModelsOverview,
+  getProjectDetail,
+  getProjectList,
+  getShravaniSummary,
+  getSystemsList
+} from '../src/bot/offlineResponder';
+
+type AssistantState =
+  | 'home'
+  | 'about_shravani'
+  | 'projects_menu'
+  | 'project_detail'
+  | 'systems_menu'
+  | 'models_menu'
+  | 'contact';
 
 const ChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -8,13 +25,14 @@ const ChatWidget: React.FC = () => {
     {
       id: 'welcome',
       role: 'model',
-      text: "Hi! I'm the NeuralFolio AI. Ask me about the projects, my creator's skills, or why GANs are cool!",
+      text: 'Hi! I’m the Smart Portfolio Assistant. Choose an option below to explore Shravani’s work.',
       timestamp: new Date()
     }
   ]);
-  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [lastSentAt, setLastSentAt] = useState<number>(0);
+  const [state, setState] = useState<AssistantState>('home');
+  const [stateStack, setStateStack] = useState<AssistantState[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -25,63 +43,277 @@ const ChatWidget: React.FC = () => {
     scrollToBottom();
   }, [messages, isOpen]);
 
-  const handleSend = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const now = Date.now();
-    if (now - lastSentAt < 2000) {
-      return;
-    }
-
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      text: input,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    setIsLoading(true);
-    setLastSentAt(now);
-
-    const recentHistory = messages.slice(-6).map(m => ({
-      role: m.role === 'model' ? 'assistant' as const : 'user' as const,
-      content: m.text
-    }));
-
-    const offlineHistory = recentHistory.map(h => ({ role: h.role, content: h.content }));
-    const { reply } = getOfflineReply(input, offlineHistory);
-    const responseText = reply;
-
-    const modelMsg: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      role: 'model',
-      text: responseText,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, modelMsg]);
-    setIsLoading(false);
+  const pushState = (next: AssistantState) => {
+    setStateStack(prev => [...prev, state]);
+    setState(next);
   };
 
-  const quickPrompts = [
-    "What can you do?",
-    "Tell me about Immigame",
-    "Show ML projects",
-    "How to contact?"
+  const goBack = () => {
+    setStateStack(prev => {
+      if (prev.length === 0) {
+        setState('home');
+        return prev;
+      }
+      const copy = [...prev];
+      const last = copy.pop() as AssistantState;
+      setState(last);
+      return copy;
+    });
+  };
+
+  const addMessage = (role: 'user' | 'model', text: string) => {
+    if (!text) return;
+    setMessages(prev => [
+      ...prev,
+      { id: `${Date.now()}-${role}-${prev.length}`, role, text, timestamp: new Date() }
+    ]);
+  };
+
+  const handleAction = (label: string, nextState?: AssistantState, payload?: any) => {
+    addMessage('user', label);
+    setIsLoading(true);
+
+    setTimeout(() => {
+      switch (label) {
+        case 'Talk about Shravani Karra':
+          addMessage('model', getShravaniSummary());
+          pushState('about_shravani');
+          break;
+        case 'Talk about a project':
+          addMessage('model', 'Select a project to view details.');
+          pushState('projects_menu');
+          break;
+        case 'Systems':
+          addMessage('model', 'Here are the systems available:');
+          pushState('systems_menu');
+          break;
+        case 'ML Models & Methods':
+          addMessage('model', getModelsOverview());
+          pushState('models_menu');
+          break;
+        case 'Contact':
+          addMessage('model', getContactInfo());
+          pushState('contact');
+          break;
+        default:
+          break;
+      }
+
+      if (nextState === 'project_detail' && payload?.id) {
+        const detail = getProjectDetail(payload.id);
+        setSelectedProjectId(payload.id);
+        addMessage('model', detail.text);
+        pushState('project_detail');
+      }
+
+      if (nextState === 'systems_menu' && payload?.text) {
+        addMessage('model', payload.text);
+      }
+
+      if (nextState === 'models_menu' && payload?.category) {
+        addMessage('model', getModelCategoryDetail(payload.category));
+      }
+
+      if (nextState === 'home') {
+        setState('home');
+        setStateStack([]);
+        addMessage('model', 'Restarted. How can I help?');
+      }
+
+      setIsLoading(false);
+    }, 120);
+  };
+
+  const handleStartOver = () => handleAction('Start over', 'home');
+
+  const projectList = getProjectList();
+  const systemList = getSystemsList();
+  const modelCategories = [
+    'Regression',
+    'Classification',
+    'Tree-based',
+    'Boosting',
+    'Clustering',
+    'Anomaly Detection',
+    'Time Series',
+    'Deep Learning',
+    'NLP/LLMs'
   ];
+
+  const renderOptions = () => {
+    if (state === 'home') {
+      const options = [
+        'Talk about Shravani Karra',
+        'Talk about a project',
+        'Systems',
+        'ML Models & Methods',
+        'Contact'
+      ];
+      return options.map(opt => (
+        <button
+          key={opt}
+          onClick={() => handleAction(opt)}
+          className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
+        >
+          {opt}
+        </button>
+      ));
+    }
+
+    if (state === 'projects_menu') {
+      return (
+        <>
+          {projectList.map(p => (
+            <button
+              key={p.id}
+              onClick={() => handleAction(p.displayName, 'project_detail', { id: p.id })}
+              className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-left"
+            >
+              {p.displayName}
+            </button>
+          ))}
+          <button
+            onClick={goBack}
+            className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
+          >
+            Back
+          </button>
+        </>
+      );
+    }
+
+    if (state === 'project_detail' && selectedProjectId) {
+      const detail = getProjectDetail(selectedProjectId);
+      return (
+        <>
+          {detail.links?.live && (
+            <a
+              href={detail.links.live}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 rounded-lg text-sm bg-brand-primary text-slate-900 font-semibold hover:opacity-90 transition-colors text-center"
+            >
+              Open Live
+            </a>
+          )}
+          {detail.links?.github && (
+            <a
+              href={detail.links.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-center"
+            >
+              Open GitHub
+            </a>
+          )}
+          {detail.links?.notebook && (
+            <a
+              href={detail.links.notebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-center"
+            >
+              Open Notebook
+            </a>
+          )}
+          <button
+            onClick={() => handleAction('Back to Projects', 'projects_menu')}
+            className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
+          >
+            Back to Projects
+          </button>
+        </>
+      );
+    }
+
+    if (state === 'systems_menu') {
+      return (
+        <>
+          {systemList.map(s => (
+            <button
+              key={s.id}
+              onClick={() =>
+                handleAction(
+                  s.displayName,
+                  'systems_menu',
+                  { id: s.id, text: `${s.displayName}: ${s.problem} Approach: ${s.approach}` }
+                )
+              }
+              className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-left"
+            >
+              {s.displayName}
+            </button>
+          ))}
+          <button
+            onClick={goBack}
+            className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
+          >
+            Back
+          </button>
+        </>
+      );
+    }
+
+    if (state === 'models_menu') {
+      return (
+        <>
+          {modelCategories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => handleAction(cat, 'models_menu', { category: cat })}
+              className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors text-left"
+            >
+              {cat}
+            </button>
+          ))}
+          <button
+            onClick={goBack}
+            className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
+          >
+            Back
+          </button>
+        </>
+      );
+    }
+
+    if (state === 'about_shravani' || state === 'contact') {
+      return (
+        <>
+          <button
+            onClick={goBack}
+            className="px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleStartOver}
+            className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
+          >
+            Start over
+          </button>
+        </>
+      );
+    }
+
+    return (
+      <button
+        onClick={handleStartOver}
+        className="px-3 py-2 rounded-lg text-sm bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
+      >
+        Start over
+      </button>
+    );
+  };
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {/* Chat Window */}
       {isOpen && (
-        <div className="mb-4 w-[350px] md:w-[400px] h-[500px] bg-slate-900 border border-brand-primary/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up">
+        <div className="mb-4 w-[350px] md:w-[400px] h-[520px] bg-slate-900 border border-brand-primary/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up">
           <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="font-bold text-white font-mono">NeuralBot v2.5</span>
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" title="Offline"></div>
+              <span className="font-bold text-white font-mono">Smart Portfolio Assistant</span>
             </div>
             <button 
               onClick={() => setIsOpen(false)}
@@ -123,35 +355,11 @@ const ChatWidget: React.FC = () => {
 
           <div className="p-4 bg-slate-800 border-t border-slate-700 space-y-3">
             <div className="flex flex-wrap gap-2">
-              {quickPrompts.map(prompt => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => setInput(prompt)}
-                  className="px-3 py-1 rounded-full text-xs bg-slate-900 text-slate-200 border border-slate-700 hover:border-brand-primary/60 transition-colors"
-                >
-                  {prompt}
-                </button>
-              ))}
+              {renderOptions()}
             </div>
-            <form onSubmit={handleSend} className="flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about projects, systems, or skills…"
-                className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              />
-              <button 
-                type="submit"
-                disabled={isLoading || !input.trim()}
-                className="bg-brand-primary hover:bg-brand-primary/80 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 font-bold p-2 rounded-lg transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                </svg>
-              </button>
-            </form>
+            <div className="text-xs text-slate-500">
+              Guided mode is offline and uses local portfolio data. No internet calls are made.
+            </div>
           </div>
         </div>
       )}
